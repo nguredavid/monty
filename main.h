@@ -1,60 +1,46 @@
 #include "monty.h"
-#include <ctype.h>
-
-glbnfo *info = NULL;
-
+int ERROR_MANAGE = 0;
 /**
- * main - our main function
- * @argc: a count of the number of args
- * @argv: an array of char pointers to arguments
- * Return: 0 for success
+ * main - is the main functioj
+ * @argc: int of how many arguments
+ * @argv: is the arguments passed into the file
+ *
+ * Return: if fails throught errors
  */
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
+	size_t size = 0;
+	FILE *monty_file;
+	char *buffer = NULL;
+	int lines = 1;
 	stack_t *stack = NULL;
-	char *line_buf = NULL;
-	size_t line_buf_size = 0;
-	int line_size;
-	unsigned int line_count = 0;
-	int i = 0;
-	char *cmd_toks;
-	char *command[50];
-	char delimit[] = " \t\n";
-	const char *filename;
-	FILE *fp;
-
+	instruction_t instruct[] = {{"push", push}, {"pall", pall},
+				    {"nop", nop}, {"pop", pop}, {"pint", pint}, {"swap", NULL},
+				    {"add", add}, {"sub", sub}, {"div", NULL}, {NULL, NULL}};
 	if (argc != 2)
 	{
 		fprintf(stderr, "USAGE: monty file\n");
 		exit(EXIT_FAILURE);
 	}
-	filename = argv[1];
-	fp = fopen(filename, "r");
-	file_check(fp, filename);
-	info = malloc(sizeof(glbnfo));
-	if (info == NULL)
+	monty_file = fopen(argv[1], "r");
+	if (monty_file == NULL)
 	{
-		fprintf(stderr, "Error: malloc failed\n");
-		fclose(fp);
+		fprintf(stderr, "Error: Can't open file %s\n", argv[1]);
 		exit(EXIT_FAILURE);
 	}
-	info->fp = &fp;
-	info->buffer = &line_buf;
-	line_size = getline(&line_buf, &line_buf_size, fp);
-	while (line_size >= 0)
+	while (getline(&buffer, &size, monty_file) > 0)
 	{
-		line_count += 1;
-		cmd_toks = strtok(line_buf, delimit);
-		while (cmd_toks != NULL)
+		if (excute(&stack, lines, buffer, instruct, monty_file) == 1)
 		{
-			command[i] = cmd_toks;
-			cmd_toks = strtok(NULL, delimit);
-			i++;
+			free(buffer);
+			free_dlist(stack);
+			fclose(monty_file);
+			exit(EXIT_FAILURE);
 		}
-		cmd_comp(command, &stack, line_count);
-	    line_size = getline(&line_buf, &line_buf_size, fp);
-	    i = 0;
+		lines++;
 	}
-	clean_up(info->fp, &stack, info->buffer);
+	free(buffer);
+	free_dlist(stack);
+	fclose(monty_file);
 	return (0);
 }
